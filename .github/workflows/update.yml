@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: "17 */6 * * *"
   workflow_dispatch:
+    inputs:
+      test_push:
+        description: "Only test the push path: push an empty commit to a throwaway branch, then delete it"
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -35,10 +40,20 @@ jobs:
       - name: Commit if changed
         env:
           GH_TOKEN: ${{ github.token }}
+          TEST_PUSH: ${{ inputs.test_push }}   # empty on scheduled runs
         run: |
-          if [ -z "$(git status --porcelain Casks)" ]; then echo "Cask already up to date."; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$TEST_PUSH" = "true" ]; then
+            branch="test-push/$GITHUB_RUN_ID"
+            git commit --allow-empty -m "test push"
+            gh auth setup-git
+            git push origin "HEAD:refs/heads/$branch"
+            git push origin --delete "$branch"
+            echo "Push path OK (pushed and deleted $branch)."
+            exit 0
+          fi
+          if [ -z "$(git status --porcelain Casks)" ]; then echo "Cask already up to date."; exit 0; fi
           git add Casks
           git commit -m "notchhider: update to latest release"
           gh auth setup-git
