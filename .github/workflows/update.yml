@@ -6,14 +6,23 @@ on:
     - cron: "17 */6 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: write
+permissions: {}
+
+concurrency:
+  group: update-casks
+  cancel-in-progress: false
 
 jobs:
   update:
+    name: Update notchhider cask
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # push the updated cask to this repo
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false   # the token is only handed to the push step below
 
       - name: Fetch cask from latest release
         env:
@@ -24,10 +33,13 @@ jobs:
           cp "$RUNNER_TEMP/cask/notchhider.rb" Casks/notchhider.rb
 
       - name: Commit if changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -z "$(git status --porcelain Casks)" ]; then echo "Cask already up to date."; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Casks
           git commit -m "notchhider: update to latest release"
-          git push
+          gh auth setup-git
+          git push origin "HEAD:$GITHUB_REF_NAME"
