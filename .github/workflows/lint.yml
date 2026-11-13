@@ -1,0 +1,39 @@
+name: Lint workflows
+
+# actionlint + zizmor (auditor level) on every PR and push, so the update workflow's hardening
+# (SHA-pinned actions, job-level permissions, no persisted credentials) can't quietly regress.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Install linters (pinned versions)
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          pipx install zizmor==1.32.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: actionlint
+        run: actionlint
+
+      - name: zizmor
+        env:
+          GH_TOKEN: ${{ github.token }}   # read-only; for zizmor's online audits
+        run: zizmor --persona=auditor --no-progress .github
