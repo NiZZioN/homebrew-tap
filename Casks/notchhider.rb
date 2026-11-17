@@ -1,6 +1,6 @@
 cask "notchhider" do
-  version "1.1.0"
-  sha256 "4593101ae13550ece9e2e985c7d7fa752360025b88ce4222be5b092e6d299686"
+  version "1.2.0"
+  sha256 "45df05d82a448859ddbf2563cfa88a5b9eceeda753f7b1c84deaa245bfd2772b"
 
   url "https://github.com/NiZZioN/NotchHider/releases/download/v#{version}/NotchHider-#{version}.zip"
   name "Notch Hider"
